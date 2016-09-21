@@ -2,8 +2,9 @@
 .Rhistory
 .RData
 .Ruserdata
-src/*.o
-src/*.so
-src/*.dll
+*.o
+*.so
+*.dll
 .DS_Store
 *.Rproj
+*~

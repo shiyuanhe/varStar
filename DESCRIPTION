@@ -3,7 +3,7 @@ Type: Package
 Title: Estimate the period of Mira Variable Stars
 Version: 1.1
 Date: 2015-02-27
-Author: Shiyuan He
+Author: Shiyuan He, Wenlong Yuan
 Maintainer: Shiyuan He <shiyuan@stat.tamu.edu>
 Description: Period Estimation by GP model
 License: GPL (>= 2)
