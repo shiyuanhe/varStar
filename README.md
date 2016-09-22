@@ -1,7 +1,12 @@
 # varStar
 Period Estimation for Quasi-Periodical Mira Variable Stars
 
-Visit project webpage [https://shiyuanhe.github.io/varStar/](https://shiyuanhe.github.io/varStar/) for more information.
+#### Citing the code: 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.154628.svg)](https://doi.org/10.5281/zenodo.154628)
+
+#### Project webpage 
+[https://shiyuanhe.github.io/varStar/](https://shiyuanhe.github.io/varStar/)
+
 
 ## Simulated Light Curves
 The subdirectory ```simulatedLightcurves``` contains the simulated light curves and 
