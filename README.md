@@ -22,8 +22,12 @@ library(devtools)
 install_github("shiyuanhe/varStar/varStar")
 ```
 
-### Usage example
+## More Information and Usage example
+Visit project webpage [https://shiyuanhe.github.io/varStar/](https://shiyuanhe.github.io/varStar/)
 
-1. [Fitting a Densely Observed Mira Light Curve](./example/example1.html)
 
 
+## Reference
+This project is based on the work of
+
+* Shiyuan He, Wenlong Yuan, Jianhua Z. Huang, James Long, Lucas M. Macri (2016) Period estimation for sparsely-sampled quasi-periodic light curves applied to Miras. [http://arxiv.org/abs/1609.06680](http://arxiv.org/abs/1609.06680)
