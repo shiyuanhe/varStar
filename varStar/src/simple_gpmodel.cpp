@@ -65,9 +65,7 @@ void simple_gpModel::kernel_SE(int p1, int p2,
 // includeBeta, the sinusoid component, MIRA/SRV, k must be 0
 // includeGP, the GP component, pure sinusoid, k must be 0
 // k==0 for pure likelihood evaluation
-void simple_gpModel::compute_CovM(vec & xx, vec & yy, int k,
-                                  bool includeBeta=true,
-                                  bool includeGP=true){
+void simple_gpModel::compute_CovM(vec & xx, vec & yy, int k){
   // compute kernel
   bool symmetric = false;
   if(k<=0) symmetric = true;
@@ -77,14 +75,11 @@ void simple_gpModel::compute_CovM(vec & xx, vec & yy, int k,
   nK2 = yy.n_elem;
   gp_Kc = mat(nK1, nK2, fill::zeros);
 
-  
-  
   // for training, include measurement error
   // else, leave early
   if(k<=0){
     for(int i=0; i<nObs; i++){
-      gp_Kc(i, i)  += mag_sigma(i)*mag_sigma(i)
-      + 0.001 ;  //relaxed
+      gp_Kc(i, i)  += mag_sigma(i)*mag_sigma(i);  //relaxed
     }
   }else if (k==1){
     kernel_SE(0, 1, 0, xx, yy, symmetric);
@@ -96,24 +91,23 @@ void simple_gpModel::compute_CovM(vec & xx, vec & yy, int k,
     return;
   }
   
- 
   //include GP kernel
-  if(includeGP){
+  //if(includeGP){
     kernel_SE(0, 1, 0, xx, yy, symmetric);
     gp_Kc += kernel_K;
-  }else{
-     double eTheta1 = exp(theta(0));
-     eTheta1 *= eTheta1;
-    gp_Kc.diag() += eTheta1;
-  }
+  // }else{
+  //    double eTheta1 = exp(theta(0));
+  //    eTheta1 *= eTheta1;
+  //   gp_Kc.diag() += eTheta1;
+  // }
 
 
   //if Mira model, add HtBH
   //else only add overall mean uncertainty
-  if(includeBeta)
+  //if(includeBeta)
     gp_Ky = gp_Kc + HtBH;
-  else
-    gp_Ky = gp_Kc + sigmamSq;
+  // else
+  //   gp_Ky = gp_Kc + sigmamSq;
 
   //compute chol, for inverse
   flag_inv = true;
@@ -135,15 +129,12 @@ void simple_gpModel::compute_CovM(vec & xx, vec & yy, int k,
 //copmute minus log likelihood of the data
 // this the joint density of y and theta
 // includeBeta = false, model for SRV
-// includeGP = false, model for O-rich?? or C-rich
-double simple_gpModel::gp_mLoglik(vec theta_,
-                                  bool includeBeta = true,
-                                  bool includeGP = true){
+double simple_gpModel::gp_mLoglik(vec theta_){
   double mLoglik;
   //gp_setTheta(theta_);
   theta = theta_;
   
-  compute_CovM(MJD, MJD, 0, includeBeta, includeGP);
+  compute_CovM(MJD, MJD, 0);
   
   if(flag_inv){
     //&& abs(theta(0))<6  && theta(1)>2 && theta(1)<500
@@ -269,7 +260,7 @@ simple_gpModel::simple_gpModel(NumericVector MJD_,
                                NumericVector mag_, NumericVector error_):
                                varStar(MJD_, mag_, error_)
 {
-  gp_m = 15.62 + 6.2;
+  gp_m = mean(mag);//15.62 + 6.2;
   sigmamSq = 100;
   sigmabSq= 1;
   fmin = 0.0005;
@@ -297,73 +288,73 @@ simple_gpModel::simple_gpModel(NumericVector MJD_,
 mat simple_gpModel::freq_est(){
   double ftrial;
   int fstep;
-  
+
   fstep = floor((fmax-fmin)/fdelta);
-  
-  
+
+
   mat spc = mat(fstep,4,fill::zeros);
   vec theta0(2,fill::zeros),theta0Opt(2,fill::zeros);
   mat H0,H0Opt;
   double yopt,cloglik;
-  
-  
+
+
   ftrial = fmax;
   int i, j,h;
   int k=0, checkL = 90;
-  
+
   h = 0;
-  // length(seq(-2,15.9,by=1))* length(seq(-2,2.9,by=1))
-  
+
   mat init = mat(2,checkL,fill::zeros);
   vec initY(checkL,fill::zeros);
   uword minRowI;
-  
+
   for(i=-2;i<3;i=i+1)
-    for(j = -2;j<16;j=j+1){
+    for(j = -2;j<16;j=j+2){
       init(0,h) = (double) i;
       init(1,h) = (double) j;
       h++;
     }
-    
-    
+
+
     while(ftrial>=fmin){
        set_freq(ftrial);
-      
-      cloglik = gp_mLoglik(theta0Opt,true,true);
-      
+
+      cloglik = gp_mLoglik(theta0Opt);
+
       // evaluate the whole surface
       for(h=0;h<checkL;h++){
-        initY(h) = gp_mLoglik(init.col(h),true,true);
+        initY(h) = gp_mLoglik(init.col(h));
       }
-      
+
       //if the current opt point is not sub-optimal
       //then restart
-      if(cloglik>initY.min(minRowI)){
+      if(cloglik > initY.min(minRowI)){
         H0 = eye<mat>(2,2);
         theta0 = init.col(minRowI);
       }else{
         theta0 = theta0Opt;
         H0 = H0Opt;
       }
-      
-      
-      yopt = BFGSopt(theta0,H0,false);
+
+
+      yopt = BFGSopt(theta0, H0, false);
       H0Opt = H0;
       theta0Opt = theta0;
-      
-      
+
       spc(k,0) = ftrial;
       spc(k,1) = -yopt;
       spc(k,2) = theta0Opt(0);
       spc(k,3) = theta0Opt(1);
-      
+
       ftrial -=fdelta;
       k++;
       if(k>=fstep) break;
     }
-    
+
     return spc;
 }
+
+
 
 
 
@@ -388,7 +379,7 @@ double simple_gpModel::BFGSopt(vec &theta0, mat &H0,
   Xk = theta0;
   stepsize = 1;
   // the covariance matrix, only once
-  Fk = gp_mLoglik(Xk,true,true);
+  Fk = gp_mLoglik(Xk);
   if(!flag_inv) return largeV;  
   Fkp1 = Fk;
   deltaFk = gp_DmLoglik(Xk);
@@ -405,7 +396,7 @@ double simple_gpModel::BFGSopt(vec &theta0, mat &H0,
     while(true){
       if(ahigh-alow<1e-3) stepsize = alow;
       Xkp1 = Xk + stepsize*pk;
-      Fkp1 = gp_mLoglik(Xkp1,true,true);
+      Fkp1 = gp_mLoglik(Xkp1);
       
       //check the armijo condition
       armijoRight =  Fk + C1*stepsize*tmpIn;
@@ -452,32 +443,9 @@ double simple_gpModel::BFGSopt(vec &theta0, mat &H0,
   }
   theta0 = Xk;
   H0 = Hk;
+  
   return Fkp1;
 }
-
-
-
-
-
-
-RCPP_MODULE(varStar_m3){
-  class_<varStar>("varStar")
-  .constructor<NumericVector,
-  NumericVector,
-  NumericVector>()
-  ;    
-  class_ <simple_gpModel>( "simple_gpModel")
-    .derives<varStar>("varStar")
-    .constructor<NumericVector, NumericVector,
-  NumericVector>()
-    .method("set_theta", &simple_gpModel::set_theta)
-    .method("set_freq", &simple_gpModel::set_freq)
-    .method("gp_mLoglik", &simple_gpModel::gp_mLoglik)
-    .method("predict", &simple_gpModel::predict)
-    .method("BFGSopt", &simple_gpModel::BFGSopt)
-    .method("freq_est", &simple_gpModel::freq_est)
-  ;
-}// MODULE
 
 
 

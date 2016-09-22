@@ -31,8 +31,7 @@ for $q(t)$. Note the periodical kernel allows the light curve amplitude to chang
 In this example, the above Gaussian process model is fitted on a densely observed Mira light curve. 
 
 ```{r readin}
-library(VarStar)
-library(VarStar)
+library(varStar)
 starObs = read.table("./OGLE-LMC-LPV-00055.dat")
 obsJD = starObs$V1
 obsMag = starObs$V2

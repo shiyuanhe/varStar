@@ -1,5 +1,4 @@
 #include "model.h"
-#include <RcppArmadilloExtensions/sample.h>
 
 //In this file, magnitude is modeled as
 //a_k*f(phase)+m_k

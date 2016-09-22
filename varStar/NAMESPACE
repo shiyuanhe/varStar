@@ -1,9 +1,10 @@
-useDynLib(VarStar)
+useDynLib(varStar)
 import(methods, Rcpp)
 importFrom(Rcpp,evalCpp)
 export(
     fitComplexGP,
     plotStarObs,
     gpModel,
-    plotAllComponents
+    plotAllComponents,
+    simple_gpModel
 )

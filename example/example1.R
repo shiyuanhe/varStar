@@ -1,4 +1,4 @@
-library(VarStar)
+library(varStar)
 starObs = read.table("./OGLE-LMC-LPV-00055.dat")
 obsJD = starObs$V1
 obsMag = starObs$V2

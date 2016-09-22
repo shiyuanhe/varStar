@@ -1,0 +1,74 @@
+---
+title: "Frequency Estimation for a Sparsely Sampled Mira Light Curve"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen = 4, digits = 10)
+```
+## The Gaussian process model
+
+This is the proposed period estimation method in our work. 
+Let $y_i$ be the magnitude of a variable star observed at time $t_i$ (in units of days) with uncertainty $\sigma_i$. The data set for this object, obtained as part of a time-series survey with $n$ epochs is $\{(t_i,y_i,\sigma_i)\}_{i=1}^n$.
+
+Suppose the data $\{(t_i,y_i,\sigma_i)\}_{i=1}^n$ is modeled by 
+$$y_i = g(t_i) + \sigma_i\epsilon_i\,$$ 
+where $g(t_i)$ is the light curve signal and the $\epsilon_i\sim N(0,1)$ is independent with other $\epsilon_j$'s.
+
+The light curve signal $g(t_i)$ is  decomposed into three parts
+$$
+\begin{split} 
+g(t) & = m + q(t) + h(t)\\
+     & = m + \beta_1\cos(2\pi ft) + \beta_2\sin(2\pi ft) + h(t)\, ,
+\end{split}
+$$
+where $m$ is the long-run average magnitude, $q(t) = \beta_1\cos(2\pi ft) + \beta_2\sin(2\pi ft)$ with frequency $f$ is the exactly periodical signal, and $h(t)$ is the stochastic deviation from a constant mean magnitude, caused by the formation and destruction of dust in the cool atmospheres of Miras. To simplify notation, we define $\mathbf{b}_f(t) =(\cos(2\pi ft),\sin(2\pi ft))^T$, so that $q(t) = \mathbf{b}_f(t)^T\boldsymbol{\beta}$. The subscript $f$ in $\mathbf{b}_f(t)$ emphasizes that the basis is parameterized by the frequency $f$. 
+
+The term $h(t)$ is modeled by a Gaussian process with square exponential kernel $k_{\boldsymbol{\theta}} (t,t') = \theta_1^2\exp \left(-\frac{(t-t')^2}{2\theta_2^2}\right)$. 
+$$
+\begin{split}
+& y_i | m,\boldsymbol{\beta}, g(t_i)  \sim
+\mathcal{N}(g(t_i), \sigma_i^2), \\
+& g(t)  = m + \mathbf{b}_f(t)^T\boldsymbol{\beta} + h(t), \\
+& m \sim \mathcal{N}(m_0, \sigma_m^2),\ 
+ \boldsymbol{\beta}  \sim \mathcal{N}(\mathbf{0},\sigma_b^2\mathbf{I} ),\\
+& h(t)| \boldsymbol{\theta} \sim  \mathcal{GP}(0,k_\boldsymbol{\theta} (t,t')),
+\end{split}
+$$
+
+## Example
+
+Read in the fake light curve.
+
+```{r}
+library(varStar)
+starObs = read.table("./mira_73762_wli31709_131.5.flc")
+obsJD = starObs$V1
+obsMag = starObs$V2
+obsSigma = starObs$V3
+head(starObs)
+plotStarObs(obsJD,obsMag,obsSigma)
+```
+
+
+
+Create an modeling object of class ```simple_gpModel```. The ```new()``` function is used to create object, with additional parameters of Julian date, magnitude and observation sigma. The member function ```freq_est()``` is then called to produce the periodogram. The returned matrix ```spc``` has four columns. The first column is the frequency, the second column is the corresponding log-likelihood, and the third and fourth columns are the optimal $\theta_1$ and $\theta_2$.
+```{r}
+vsObj = new(simple_gpModel,
+            obsJD, obsMag,obsSigma)
+spc = vsObj$freq_est()
+head(spc)
+```
+
+The first two columns are used to plot the periodogram. The true frequency of this generated light curve is 0.006236.
+```{r}
+plot(spc[,1],spc[,2],type="l", main="",
+     xlab=expression(Frequency(day^-1)),
+    ylab="Log-Likelihood")
+f0 = 0.006236
+abline(v = f0, col = "blue")
+abline(v = f0+1/365, col = "red", lty = 2)
+abline(v = f0-1/365, col = "red", lty = 2)
+```
+

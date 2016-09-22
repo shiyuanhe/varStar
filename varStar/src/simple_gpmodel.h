@@ -49,7 +49,7 @@ protected:
   mat gp_K21, gp_K22, gp_Kc, gp_Kc_inv;
   
   
-  void compute_CovM(vec &, vec &, int, bool,bool);
+  void compute_CovM(vec &, vec &, int);
   mat gp_get_Ht(vec );
   
   //result of kenrel (and its derivative) computation
@@ -61,7 +61,7 @@ protected:
   double largeV;
 public:
   
-  double gp_mLoglik(vec, bool, bool); //minus log-lik
+  double gp_mLoglik(vec); //minus log-lik
   vec gp_DmLoglik(vec); // deriv of the above
   mat freq_est();
   double BFGSopt(vec&, mat&, bool);

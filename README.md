@@ -1,6 +1,8 @@
 # varStar
 Period Estimation for Quasi-Periodical Mira Variable Stars
 
+Visit project webpage [https://shiyuanhe.github.io/varStar/](https://shiyuanhe.github.io/varStar/) for more information.
+
 ## Simulated Light Curves
 The subdirectory ```simulatedLightcurves``` contains the simulated light curves and 
 supplementary table. 
@@ -22,9 +24,8 @@ library(devtools)
 install_github("shiyuanhe/varStar/varStar")
 ```
 
-## More Information and Usage example
-Visit project webpage [https://shiyuanhe.github.io/varStar/](https://shiyuanhe.github.io/varStar/)
-
+## Usage example
+Example codes and data are contained in the subdirectory ```example```.
 
 
 ## Reference
