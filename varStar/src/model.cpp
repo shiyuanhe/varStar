@@ -19,7 +19,7 @@ varStar::varStar(NumericVector MJDI, NumericVector magI,
 
 // Set the frequency
 // shift is UNIFORM(0, period)
-void varStar::set_freq(double fff, double shift){
+void varStar::set_freq(double fff){
 
 }
 

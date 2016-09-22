@@ -94,7 +94,6 @@ void gpModel::compute_CovM(int taskI){
     
     if(taskI==0 && nK1==nK2){
         for(int i=0; i<nObs; i++){
-            //if(i < 5) Rcout<<1/(weight(i)*weight(i))<<std::endl;
             gp_K(i, i)  += mag_sigma(i)*mag_sigma(i);  //relaxed
         }
         gp_Kinv = gp_K.i();
@@ -150,15 +149,9 @@ vec gpModel::gp_DmLoglik(NumericVector theta_){
 //set theta before further MLE
 void gpModel::gp_setTheta(NumericVector theta_){
     theta = vec(theta_);
-    gp_y = mag - gp_m;
-    gp_y1 = MJD;
-    gp_y2 = MJD;
-    nK1 = nObs;
-    nK2 = nObs;
-    kernel_partialK = mat(nK1, nK2, fill::zeros);
 }
 
-List gpModel::gp_predict(NumericVector Xnew_, int comp){
+vec gpModel::gp_predict(NumericVector Xnew_, int comp){
     Xnew = vec(Xnew_);
     
     //covariance and variance of Xnew
@@ -182,23 +175,33 @@ List gpModel::gp_predict(NumericVector Xnew_, int comp){
     gp_y1 = MJD;
     nK1 = nObs;
     compute_CovM(0); 
+
     
     //mat covY = gp_K22 - gp_K21*gp_Kinv*gp_K21.t();
-    vec covD = vec(1, fill::zeros);//covY.diag();
+    //vec covD = covY.diag(); //vec(1, fill::zeros);//covY.diag();
     vec predY =gp_m + gp_K21 * gp_Kinv * gp_y;
-    return List::create(Named("predy")=predY,
-                        Named("var")=covD);
+    return predY;
+    // return List::create(Named("predMean")=predY,
+    //                     Named("predSigma")=covD);
 }
 
 gpModel::gpModel(NumericVector MJD_,
-                 NumericVector mag_, NumericVector error_, double gpM_):
+                 NumericVector mag_, NumericVector error_):
     varStar(MJD_, mag_, error_)
 {
-    gp_m = gpM_;
+    gp_m = mean(mag);
+    
+    gp_y = mag - gp_m;
+    gp_y1 = MJD;
+    gp_y2 = MJD;
+    nK1 = nObs;
+    nK2 = nObs;
+    kernel_partialK = mat(nK1, nK2, fill::zeros);
+    
 }
 
 
-void gpModel::set_freq(double fff, double shift){
+void gpModel::set_freq(double fff){//, double shift){
     freq = fff;
     //new design matrix after changing period
     vec tmpMJD;
@@ -208,82 +211,66 @@ void gpModel::set_freq(double fff, double shift){
     nCyc = max(tmpMJD) + 1;
 }
 
-
-List gpModel::get_fake(NumericVector fMJD_, double noiseFactor){
-    RNGScope scope;
-    vec fMJD(fMJD_),fMJDStraight;
-    int nfObs = fMJD.n_elem; // number of fake observation
-    int i;
-    mat fLcurve(nfObs, 3, fill::zeros);
-    
-    //make shift
-    //calculate phase and cycles
-    double deltaMJD = 0;
-    if(nCyc>3)
-        deltaMJD =  (nCyc-1) / freq;
-    else
-        deltaMJD = nCyc / freq;
-    
-    double shiftMax;
-    shiftMax = max(MJD) - min(MJD) - (max(fMJD) - min(fMJD));
-    if(shiftMax < 1/ freq) shiftMax = 1 / freq;
-    
-    double shift = R::runif(0,1) / freq;
-    //Rcout<<shift<<std::endl;
-    
-    vec reflect;
-    fLcurve(span::all, 0) = fMJD;
-    fMJD = fMJD - min(fMJD) + shift;
-    fMJDStraight = fMJD;
-    fMJD = fMJD / deltaMJD;
-    reflect = floor(fMJD);
-    fMJD = fMJD -floor(fMJD);
-    int cycP_;
-    for(i=0;i<nfObs;i++){
-        cycP_ = reflect(i);
-        if(cycP_ % 2 ==1) fMJD(i) = 1 - fMJD(i);
-    }
-    
-    fMJD = fMJD*deltaMJD + min(MJD);
-    fMJDStraight += min(MJD);
-    NumericVector fMJD1 = Rcpp::as<Rcpp::NumericVector>(wrap(fMJD));
-    NumericVector fMJD2 = Rcpp::as<Rcpp::NumericVector>(wrap(fMJDStraight));
-    List res2 = gp_predict(fMJD2,2);
-    List res1 = gp_predict(fMJD1,1);
-    List res3 = gp_predict(fMJD1,3);
-    
-    fLcurve(span::all,1) = vec(as<NumericVector>(res1["predy"]));
-    fLcurve(span::all,1) += vec(as<NumericVector>(res3["predy"]));
-    fLcurve(span::all,1) += vec(as<NumericVector>(res2["predy"]));
-    fLcurve(span::all,1) -= 2*gp_m;
-    //add noise level according to mag
-    fLcurve(span::all,2) = 0.00078* fLcurve(span::all,1) 
-        % fLcurve(span::all,1)-0.02258*fLcurve(span::all,1) 
-        + 0.16908;
-        fLcurve(span::all, 2) = fLcurve(span::all, 2) * noiseFactor;
-        double noiseAdd;
-        for(i=0; i<nfObs; i++){
-            if(fLcurve(i,1)<15) fLcurve(i,2) = 0.006 * noiseFactor;
-            noiseAdd = R::rnorm(0, fLcurve(i,2));
-            fLcurve(i,1) += noiseAdd; 
-        }
-        return List::create(Named("fLcurve") = fLcurve,
-                            Named("shift") = shift);
-}
-
-RCPP_MODULE(varStar_m2){
-    class_<varStar>("varStar")
-    .constructor<NumericVector, NumericVector, NumericVector>()
-    ;
-    
-    class_ <gpModel>( "gpModel")
-        .derives<varStar>("varStar")
-        .constructor<NumericVector, NumericVector, NumericVector, double>()
-        .method("set_freq", &gpModel::set_freq)
-        .method("gp_setTheta", &gpModel::gp_setTheta)
-        .method("gp_mLoglik", &gpModel::gp_mLoglik)
-        .method("gp_DmLoglik", &gpModel::gp_DmLoglik)
-        .method("gp_predict", &gpModel::gp_predict)
-        .method("get_fake", &gpModel::get_fake)
-    ;
-}
+// 
+// List gpModel::get_fake(NumericVector fMJD_, double noiseFactor){
+//     RNGScope scope;
+//     vec fMJD(fMJD_),fMJDStraight;
+//     int nfObs = fMJD.n_elem; // number of fake observation
+//     int i;
+//     mat fLcurve(nfObs, 3, fill::zeros);
+//     
+//     //make shift
+//     //calculate phase and cycles
+//     double deltaMJD = 0;
+//     if(nCyc>3)
+//         deltaMJD =  (nCyc-1) / freq;
+//     else
+//         deltaMJD = nCyc / freq;
+//     
+//     double shiftMax;
+//     shiftMax = max(MJD) - min(MJD) - (max(fMJD) - min(fMJD));
+//     if(shiftMax < 1/ freq) shiftMax = 1 / freq;
+//     
+//     double shift = R::runif(0,1) / freq;
+//     //Rcout<<shift<<std::endl;
+//     
+//     vec reflect;
+//     fLcurve(span::all, 0) = fMJD;
+//     fMJD = fMJD - min(fMJD) + shift;
+//     fMJDStraight = fMJD;
+//     fMJD = fMJD / deltaMJD;
+//     reflect = floor(fMJD);
+//     fMJD = fMJD -floor(fMJD);
+//     int cycP_;
+//     for(i=0;i<nfObs;i++){
+//         cycP_ = reflect(i);
+//         if(cycP_ % 2 ==1) fMJD(i) = 1 - fMJD(i);
+//     }
+//     
+//     fMJD = fMJD*deltaMJD + min(MJD);
+//     fMJDStraight += min(MJD);
+//     NumericVector fMJD1 = Rcpp::as<Rcpp::NumericVector>(wrap(fMJD));
+//     NumericVector fMJD2 = Rcpp::as<Rcpp::NumericVector>(wrap(fMJDStraight));
+//     List res2 = gp_predict(fMJD2,2);
+//     List res1 = gp_predict(fMJD1,1);
+//     List res3 = gp_predict(fMJD1,3);
+//     
+//     fLcurve(span::all,1) = vec(as<NumericVector>(res1["predy"]));
+//     fLcurve(span::all,1) += vec(as<NumericVector>(res3["predy"]));
+//     fLcurve(span::all,1) += vec(as<NumericVector>(res2["predy"]));
+//     fLcurve(span::all,1) -= 2*gp_m;
+//     //add noise level according to mag
+//     fLcurve(span::all,2) = 0.00078* fLcurve(span::all,1) 
+//         % fLcurve(span::all,1)-0.02258*fLcurve(span::all,1) 
+//         + 0.16908;
+//         fLcurve(span::all, 2) = fLcurve(span::all, 2) * noiseFactor;
+//         double noiseAdd;
+//         for(i=0; i<nfObs; i++){
+//             if(fLcurve(i,1)<15) fLcurve(i,2) = 0.006 * noiseFactor;
+//             noiseAdd = R::rnorm(0, fLcurve(i,2));
+//             fLcurve(i,1) += noiseAdd; 
+//         }
+//         return List::create(Named("fLcurve") = fLcurve,
+//                             Named("shift") = shift);
+// }
+// 

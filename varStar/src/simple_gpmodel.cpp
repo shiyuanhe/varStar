@@ -204,7 +204,7 @@ mat simple_gpModel::gp_get_Ht(vec xx){
   return Ht_tmp;
 }// gp_get_Ht
 
-void simple_gpModel::set_freq(double fff, double shift){
+void simple_gpModel::set_freq(double fff){
   freq = fff;
   //new design matrix after changing period
   Ht = gp_get_Ht(MJD);
@@ -327,7 +327,7 @@ mat simple_gpModel::freq_est(){
     
     
     while(ftrial>=fmin){
-      set_freq(ftrial,0);
+       set_freq(ftrial);
       
       cloglik = gp_mLoglik(theta0Opt,true,true);
       

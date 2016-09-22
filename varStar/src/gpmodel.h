@@ -20,13 +20,13 @@ protected:
     
     
 public:
-    gpModel(NumericVector, NumericVector, NumericVector, double);
-    void set_freq(double, double);
+    gpModel(NumericVector, NumericVector, NumericVector);
+    void set_freq(double);
     void gp_setTheta(NumericVector );
     double gp_mLoglik(NumericVector);
     vec gp_DmLoglik(NumericVector);
-    List gp_predict(NumericVector, int comp);
-    List get_fake(NumericVector fMJD_, double noiseFactor);
+    vec gp_predict(NumericVector, int comp);
+    //List get_fake(NumericVector fMJD_, double noiseFactor);
 };
 
 

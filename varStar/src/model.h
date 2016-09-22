@@ -9,20 +9,20 @@
 
 using namespace Rcpp;
 using namespace arma;
-
+using namespace std;
 
 class varStar{
-protected:
-     //input
-    //weight is the inverse of input error
-    //       is also the inverse of mag_sigma
-    vec MJD, mag, weight, mag_sigma;
-    double freq;
-    int nObs;
-        
+    
  public:
+     //input
+     //weight is the inverse of input error
+     //       is also the inverse of mag_sigma
+     vec MJD, mag, weight, mag_sigma;
+     double freq;
+     int nObs;
+     
     varStar(NumericVector, NumericVector, NumericVector);
-    virtual void set_freq(double fff, double shift) ;
+    virtual void set_freq(double fff);
     virtual ~varStar() {}
 };
 

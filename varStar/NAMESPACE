@@ -1,4 +1,9 @@
 useDynLib(VarStar)
-exportPattern("^[[:alpha:]]+")
 import(methods, Rcpp)
 importFrom(Rcpp,evalCpp)
+export(
+    fitComplexGP,
+    plotStarObs,
+    gpModel,
+    plotAllComponents
+)

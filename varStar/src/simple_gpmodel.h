@@ -19,7 +19,7 @@ protected:
   bool flag_inv;
   
   double fmin, fmax, fdelta;
-  //gp_y: (=mag-gp_m) de-prior-meaned version of mag, 
+  //gp_y: (=mag-gp_m) de-prior-meaned version of mag
   //theta: parameters of kernels
   vec gp_y, theta;
   
@@ -71,7 +71,7 @@ public:
   // the log-likelihood for the white noise model
   //double gp_mLoglik_wn();
   
-  void set_freq(double, double);
+  void set_freq(double);
   void set_theta(NumericVector);
   
   List predict(NumericVector);
